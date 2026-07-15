@@ -1,0 +1,507 @@
+{
+  "settings": {
+    "event_name": "Parents Meeting",
+    "event_date": "2026-07-18",
+    "active_attendance": [
+      "ayah dan bunda",
+      "ayah",
+      "bunda",
+      "tidak hadir"
+    ]
+  },
+  "classes": [
+    {
+      "name": "7"
+    },
+    {
+      "name": "8"
+    },
+    {
+      "name": "9"
+    },
+    {
+      "name": "10"
+    },
+    {
+      "name": "11"
+    },
+    {
+      "name": "12"
+    }
+  ],
+  "students": [
+    {
+      "id": 1,
+      "name": "Abdurrahman Qemal Al Rumi",
+      "class_name": "7"
+    },
+    {
+      "id": 2,
+      "name": "Adam Faiz Abdillah",
+      "class_name": "7"
+    },
+    {
+      "id": 3,
+      "name": "Ahmad amir sulthon",
+      "class_name": "7"
+    },
+    {
+      "id": 4,
+      "name": "Ahmad Hilal Ghifari",
+      "class_name": "7"
+    },
+    {
+      "id": 5,
+      "name": "Al Rais Mahardika Yoza",
+      "class_name": "7"
+    },
+    {
+      "id": 6,
+      "name": "Ammar Danesh Andrasatama",
+      "class_name": "7"
+    },
+    {
+      "id": 7,
+      "name": "Berry Abdullah Ammar",
+      "class_name": "7"
+    },
+    {
+      "id": 8,
+      "name": "Dzaki Abdurrahman farizki",
+      "class_name": "7"
+    },
+    {
+      "id": 9,
+      "name": "Fadel Muhammad",
+      "class_name": "7"
+    },
+    {
+      "id": 10,
+      "name": "Hafidz aqil pranaja",
+      "class_name": "7"
+    },
+    {
+      "id": 11,
+      "name": "Ibrohim Abdul Kholiq",
+      "class_name": "7"
+    },
+    {
+      "id": 12,
+      "name": "Imam Ahmad",
+      "class_name": "7"
+    },
+    {
+      "id": 13,
+      "name": "imam Al Ghazali Nugroho",
+      "class_name": "7"
+    },
+    {
+      "id": 14,
+      "name": "Kenzo Fairus Athar",
+      "class_name": "7"
+    },
+    {
+      "id": 15,
+      "name": "M Zidane Irawan",
+      "class_name": "7"
+    },
+    {
+      "id": 16,
+      "name": "M.Adya Alifiandra",
+      "class_name": "7"
+    },
+    {
+      "id": 17,
+      "name": "Muhammad Al Fatih Rizki Edrika",
+      "class_name": "7"
+    },
+    {
+      "id": 18,
+      "name": "Muhammad Nakhla Khayzuran Alhajar",
+      "class_name": "7"
+    },
+    {
+      "id": 19,
+      "name": "Tri Wiyardiyanto",
+      "class_name": "7"
+    },
+    {
+      "id": 20,
+      "name": "Umair Kamil Ibnu Mubarak",
+      "class_name": "7"
+    },
+    {
+      "id": 21,
+      "name": "Yazid Darmawan Norman Achmad",
+      "class_name": "7"
+    },
+    {
+      "id": 22,
+      "name": "Al Araaf Rafif Qurahman",
+      "class_name": "8"
+    },
+    {
+      "id": 23,
+      "name": "Albilly Asadil Shabran",
+      "class_name": "8"
+    },
+    {
+      "id": 24,
+      "name": "Alfarezi Ahza Setiadi",
+      "class_name": "8"
+    },
+    {
+      "id": 25,
+      "name": "Alif Azidan Azmi",
+      "class_name": "8"
+    },
+    {
+      "id": 26,
+      "name": "Ammar Raqilla Furqon",
+      "class_name": "8"
+    },
+    {
+      "id": 27,
+      "name": "Arshaka Adam Philifs",
+      "class_name": "8"
+    },
+    {
+      "id": 28,
+      "name": "Candra Ibrahim Kurniawan",
+      "class_name": "8"
+    },
+    {
+      "id": 29,
+      "name": "Dzaka adibi avicena",
+      "class_name": "8"
+    },
+    {
+      "id": 30,
+      "name": "Dzaky Bima Prayoga",
+      "class_name": "8"
+    },
+    {
+      "id": 31,
+      "name": "Faiz Mubarok",
+      "class_name": "8"
+    },
+    {
+      "id": 32,
+      "name": "Harun Al Rasyid Nugroho",
+      "class_name": "8"
+    },
+    {
+      "id": 33,
+      "name": "Jaya Raya Habibie Sofyan",
+      "class_name": "8"
+    },
+    {
+      "id": 34,
+      "name": "Kenzie Raffi Mahendra",
+      "class_name": "8"
+    },
+    {
+      "id": 35,
+      "name": "M. Fachrel Rakaan Negara",
+      "class_name": "8"
+    },
+    {
+      "id": 36,
+      "name": "Muhammad Al Hafizhi",
+      "class_name": "8"
+    },
+    {
+      "id": 37,
+      "name": "Muhammad Dimas algibran",
+      "class_name": "8"
+    },
+    {
+      "id": 38,
+      "name": "Muhammad Imam Al Ramadhan",
+      "class_name": "8"
+    },
+    {
+      "id": 39,
+      "name": "Muhammad Rasyid Farizki",
+      "class_name": "8"
+    },
+    {
+      "id": 40,
+      "name": "Raffasyah Dzaki Alvaro",
+      "class_name": "8"
+    },
+    {
+      "id": 41,
+      "name": "Risyad Yaqdhan Khairy",
+      "class_name": "8"
+    },
+    {
+      "id": 42,
+      "name": "Yusuf Daanish Fadhlurrohman",
+      "class_name": "8"
+    },
+    {
+      "id": 43,
+      "name": "Ahmad Barra Attarayhan",
+      "class_name": "9"
+    },
+    {
+      "id": 44,
+      "name": "Akbar Rizki Langit",
+      "class_name": "9"
+    },
+    {
+      "id": 45,
+      "name": "Billy Faaruuq Kabsya M.",
+      "class_name": "9"
+    },
+    {
+      "id": 46,
+      "name": "Dhimas Al Maajid Surya S.",
+      "class_name": "9"
+    },
+    {
+      "id": 47,
+      "name": "Fathan Emeraldy Dwitama",
+      "class_name": "9"
+    },
+    {
+      "id": 48,
+      "name": "Haikal Akbar",
+      "class_name": "9"
+    },
+    {
+      "id": 49,
+      "name": "Khalid Tanuarga Rizla",
+      "class_name": "9"
+    },
+    {
+      "id": 50,
+      "name": "M. Ammar Azzam",
+      "class_name": "9"
+    },
+    {
+      "id": 51,
+      "name": "M. Arkaantama",
+      "class_name": "9"
+    },
+    {
+      "id": 52,
+      "name": "M. Dzaky Akmal Seoja",
+      "class_name": "9"
+    },
+    {
+      "id": 53,
+      "name": "M. Faliandra El Fariid",
+      "class_name": "9"
+    },
+    {
+      "id": 54,
+      "name": "M. Rafa Keitaro",
+      "class_name": "9"
+    },
+    {
+      "id": 55,
+      "name": "M. Thoriq Al Fajri Khoir",
+      "class_name": "9"
+    },
+    {
+      "id": 56,
+      "name": "Muhammad Agha Haidar Edrika",
+      "class_name": "9"
+    },
+    {
+      "id": 57,
+      "name": "Raden Prabu Ridhollah",
+      "class_name": "9"
+    },
+    {
+      "id": 58,
+      "name": "Rizqullah Qary Fadhillah",
+      "class_name": "9"
+    },
+    {
+      "id": 59,
+      "name": "Suja'i",
+      "class_name": "9"
+    },
+    {
+      "id": 60,
+      "name": "Yuki Dyta Ramadhan",
+      "class_name": "9"
+    },
+    {
+      "id": 61,
+      "name": "Zaidan Ibrahim",
+      "class_name": "9"
+    },
+    {
+      "id": 62,
+      "name": "Zarko Jabbar Al Yildislillar T.",
+      "class_name": "9"
+    },
+    {
+      "id": 63,
+      "name": "Ahmad Rio Kadarsa",
+      "class_name": "10"
+    },
+    {
+      "id": 64,
+      "name": "Areza Rizky Pratama",
+      "class_name": "10"
+    },
+    {
+      "id": 65,
+      "name": "Dzaki Rahman Buana",
+      "class_name": "10"
+    },
+    {
+      "id": 66,
+      "name": "Fajar Hidayah",
+      "class_name": "10"
+    },
+    {
+      "id": 67,
+      "name": "Habibi Rizky Ramadhan",
+      "class_name": "10"
+    },
+    {
+      "id": 68,
+      "name": "Hanif Rahman Hakim",
+      "class_name": "10"
+    },
+    {
+      "id": 69,
+      "name": "M. Hanif Setya Nugraha",
+      "class_name": "10"
+    },
+    {
+      "id": 70,
+      "name": "Muhammad Royyan Ramadhan",
+      "class_name": "10"
+    },
+    {
+      "id": 71,
+      "name": "Ebi Irawan Ardianto",
+      "class_name": "11"
+    },
+    {
+      "id": 72,
+      "name": "Farrel Ikhwan Suryawan",
+      "class_name": "11"
+    },
+    {
+      "id": 73,
+      "name": "Fathan Ditya R",
+      "class_name": "11"
+    },
+    {
+      "id": 74,
+      "name": "Labib Luthfan Hisyam",
+      "class_name": "11"
+    },
+    {
+      "id": 75,
+      "name": "Raihan Yusuf Kurniawan",
+      "class_name": "11"
+    },
+    {
+      "id": 76,
+      "name": "Muhammad Arrofi Alydrus",
+      "class_name": "12"
+    },
+    {
+      "id": 77,
+      "name": "Ahmad Nurrohman",
+      "class_name": "12"
+    },
+    {
+      "id": 78,
+      "name": "Fakhri Rizki Kowasanda",
+      "class_name": "12"
+    },
+    {
+      "id": 79,
+      "name": "M. Said Probo Kusumo",
+      "class_name": "12"
+    },
+    {
+      "id": 80,
+      "name": "Bintang Jauhar",
+      "class_name": "12"
+    },
+    {
+      "id": 81,
+      "name": "Bunayya Liwa Al Hamd",
+      "class_name": "12"
+    },
+    {
+      "id": 82,
+      "name": "M. Ariz Faiq",
+      "class_name": "12"
+    },
+    {
+      "id": 83,
+      "name": "Muhammad Azzam Maulana",
+      "class_name": "12"
+    },
+    {
+      "id": 84,
+      "name": "Muhammad Kenzi Sholihan",
+      "class_name": "12"
+    },
+    {
+      "id": 85,
+      "name": "Daffa Ramadhan Putra",
+      "class_name": "12"
+    },
+    {
+      "id": 86,
+      "name": "Neo Herdy Samantha",
+      "class_name": "12"
+    },
+    {
+      "id": 87,
+      "name": "Daniya Rahman Zharif",
+      "class_name": "12"
+    }
+  ],
+  "attendance": [
+    {
+      "student_name": "Fajar Hidayah",
+      "class_name": "10",
+      "attendance_option": "ayah dan bunda",
+      "event_name": "Parents Meeting",
+      "confirmed_at": "2026-07-15T08:37:24.166Z"
+    },
+    {
+      "student_name": "Ahmad amir sulthon",
+      "class_name": "7",
+      "attendance_option": "ayah dan bunda",
+      "event_name": "Parents Meeting",
+      "confirmed_at": "2026-07-15T08:37:43.807Z"
+    },
+    {
+      "student_name": "Fadel Muhammad",
+      "class_name": "7",
+      "attendance_option": "ayah dan bunda",
+      "event_name": "Parents Meeting",
+      "confirmed_at": "2026-07-15T08:37:58.167Z"
+    },
+    {
+      "student_name": "Adam Faiz Abdillah",
+      "class_name": "7",
+      "attendance_option": "tidak hadir",
+      "event_name": "Parents Meeting",
+      "confirmed_at": "2026-07-15T09:04:28.474Z"
+    },
+    {
+      "student_name": "Ammar Danesh Andrasatama",
+      "class_name": "7",
+      "attendance_option": "ayah",
+      "event_name": "Parents Meeting",
+      "confirmed_at": "2026-07-15T09:18:10.916Z"
+    }
+  ],
+  "archives": []
+}

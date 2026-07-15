@@ -1,0 +1,408 @@
+import { supabase, isDbConfigured } from './supabase';
+import fs from 'fs';
+import path from 'path';
+
+// Path for local mock database in case Supabase is not configured yet
+const MOCK_DB_PATH = path.join(process.cwd(), 'src', 'lib', 'mock_db.json');
+
+// Initialize local mock DB structure
+function getLocalDb() {
+  try {
+    if (!fs.existsSync(MOCK_DB_PATH)) {
+      const initialDb = {
+        settings: {
+          event_name: 'Pertemuan Wali Murid',
+          event_date: '2026-08-01',
+          active_attendance: [
+            'ayah dan bunda',
+            'ayah',
+            'bunda',
+            'tidak hadir'
+          ]
+        },
+        classes: [],
+        students: [],
+        attendance: [],
+        archives: []
+      };
+      fs.writeFileSync(MOCK_DB_PATH, JSON.stringify(initialDb, null, 2));
+      return initialDb;
+    }
+    const data = fs.readFileSync(MOCK_DB_PATH, 'utf8');
+    const parsed = JSON.parse(data);
+    // Ensure archives array exists
+    if (!parsed.archives) {
+      parsed.archives = [];
+      fs.writeFileSync(MOCK_DB_PATH, JSON.stringify(parsed, null, 2));
+    }
+    return parsed;
+  } catch (err) {
+    console.error("Error reading local mock DB:", err);
+    return { settings: {}, classes: [], students: [], attendance: [], archives: [] };
+  }
+}
+
+function saveLocalDb(data) {
+  try {
+    fs.writeFileSync(MOCK_DB_PATH, JSON.stringify(data, null, 2));
+  } catch (err) {
+    console.error("Error writing local mock DB:", err);
+  }
+}
+
+// 1. Settings (Event name, Date, Active Options)
+export async function getSettings() {
+  if (isDbConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('*');
+      if (error) throw error;
+      
+      const settingsMap = {};
+      data.forEach(item => {
+        settingsMap[item.key] = item.value;
+      });
+
+      return {
+        event_name: settingsMap.event_name || 'Kegiatan Sekolah',
+        event_date: settingsMap.event_date || '2026-07-15',
+        active_attendance: settingsMap.active_attendance || []
+      };
+    } catch (err) {
+      console.error("Supabase getSettings error, falling back to local:", err);
+    }
+  }
+
+  const db = getLocalDb();
+  return db.settings;
+}
+
+export async function saveSettings(settings) {
+  if (isDbConfigured()) {
+    try {
+      const { event_name, event_date, active_attendance } = settings;
+      const updates = [
+        { key: 'event_name', value: event_name },
+        { key: 'event_date', value: event_date },
+        { key: 'active_attendance', value: active_attendance }
+      ];
+
+      for (const item of updates) {
+        const { error } = await supabase
+          .from('settings')
+          .upsert(item, { onConflict: 'key' });
+        if (error) throw error;
+      }
+      return { success: true };
+    } catch (err) {
+      console.error("Supabase saveSettings error, falling back to local:", err);
+    }
+  }
+
+  const db = getLocalDb();
+  db.settings = { ...db.settings, ...settings };
+  saveLocalDb(db);
+  return { success: true };
+}
+
+// 2. Classes
+export async function getClasses() {
+  if (isDbConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('name')
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return data.map(c => c.name);
+    } catch (err) {
+      console.error("Supabase getClasses error, falling back to local:", err);
+    }
+  }
+
+  const db = getLocalDb();
+  const classes = db.classes.map(c => c.name);
+  return [...new Set(classes)].sort();
+}
+
+// 3. Students (optionally filtered by class)
+export async function getStudents(className = null) {
+  if (isDbConfigured()) {
+    try {
+      let query = supabase
+        .from('students')
+        .select('name, classes(name)');
+      
+      if (className) {
+        const { data, error } = await supabase
+          .from('students')
+          .select('name, classes!inner(name)')
+          .eq('classes.name', className)
+          .order('name', { ascending: true });
+        if (error) throw error;
+        return data.map(s => s.name);
+      } else {
+        const { data, error } = await query.order('name', { ascending: true });
+        if (error) throw error;
+        return data.map(s => ({ name: s.name, class_name: s.classes?.name }));
+      }
+    } catch (err) {
+      console.error("Supabase getStudents error, falling back to local:", err);
+    }
+  }
+
+  const db = getLocalDb();
+  if (className) {
+    return db.students
+      .filter(s => s.class_name === className)
+      .map(s => s.name)
+      .sort();
+  }
+  return db.students.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// 4. Import student and class data
+export async function importData(rows) {
+  if (isDbConfigured()) {
+    try {
+      const uniqueClasses = [...new Set(rows.map(r => r.kelas.trim()))];
+      
+      for (const className of uniqueClasses) {
+        const { error } = await supabase
+          .from('classes')
+          .upsert({ name: className }, { onConflict: 'name' });
+        if (error) throw error;
+      }
+
+      const { data: classesData, error: classesError } = await supabase
+        .from('classes')
+        .select('id, name');
+      if (classesError) throw classesError;
+
+      const classMap = {};
+      classesData.forEach(c => {
+        classMap[c.name] = c.id;
+      });
+
+      const studentsToInsert = rows.map(r => ({
+        name: r.siswa.trim(),
+        class_id: classMap[r.kelas.trim()]
+      }));
+
+      const { error: studentsError } = await supabase
+        .from('students')
+        .upsert(studentsToInsert, { onConflict: 'name,class_id' });
+      if (studentsError) throw studentsError;
+
+      return { success: true, count: rows.length };
+    } catch (err) {
+      console.error("Supabase importData error, falling back to local:", err);
+    }
+  }
+
+  const db = getLocalDb();
+  const uniqueClasses = [...new Set(rows.map(r => r.kelas.trim()))];
+  db.classes = uniqueClasses.map(name => ({ name }));
+
+  db.students = rows.map((r, index) => ({
+    id: index + 1,
+    name: r.siswa.trim(),
+    class_name: r.kelas.trim()
+  }));
+
+  saveLocalDb(db);
+  return { success: true, count: rows.length };
+}
+
+// 5. RSVP / Attendance Confirmation
+export async function saveAttendance(attendance) {
+  if (isDbConfigured()) {
+    try {
+      const { error } = await supabase
+        .from('attendance')
+        .upsert(attendance, { onConflict: 'student_name,class_name,event_name' });
+      if (error) throw error;
+      return { success: true };
+    } catch (err) {
+      console.error("Supabase saveAttendance error, falling back to local:", err);
+    }
+  }
+
+  const db = getLocalDb();
+  
+  db.attendance = db.attendance.filter(
+    a => !(a.student_name === attendance.student_name && 
+           a.class_name === attendance.class_name && 
+           a.event_name === attendance.event_name)
+  );
+
+  db.attendance.push({
+    ...attendance,
+    confirmed_at: new Date().toISOString()
+  });
+
+  saveLocalDb(db);
+  return { success: true };
+}
+
+// 6. Get Attendance Recap
+export async function getAttendanceRecap(eventName = null) {
+  if (isDbConfigured()) {
+    try {
+      let query = supabase.from('attendance').select('*');
+      if (eventName) {
+        query = query.eq('event_name', eventName);
+      }
+      const { data, error } = await query.order('confirmed_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error("Supabase getAttendanceRecap error, falling back to local:", err);
+    }
+  }
+
+  const db = getLocalDb();
+  if (eventName) {
+    return db.attendance.filter(a => a.event_name === eventName).reverse();
+  }
+  return [...db.attendance].reverse();
+}
+
+// 7. Delete Active Attendance (New Feature)
+export async function deleteAttendance(studentName, className, eventName) {
+  if (isDbConfigured()) {
+    try {
+      const { error } = await supabase
+        .from('attendance')
+        .delete()
+        .eq('student_name', studentName)
+        .eq('class_name', className)
+        .eq('event_name', eventName);
+      if (error) throw error;
+      return { success: true };
+    } catch (err) {
+      console.error("Supabase deleteAttendance error, falling back to local:", err);
+    }
+  }
+
+  const db = getLocalDb();
+  db.attendance = db.attendance.filter(
+    a => !(a.student_name === studentName && 
+           a.class_name === className && 
+           a.event_name === eventName)
+  );
+  saveLocalDb(db);
+  return { success: true };
+}
+
+// 8. Save Current RSVP to Archive (New Feature)
+export async function archiveAttendance(archiveName, eventName) {
+  if (isDbConfigured()) {
+    try {
+      // 1. Fetch active records for this event
+      const { data, error: fetchError } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('event_name', eventName);
+      
+      if (fetchError) throw fetchError;
+      if (!data || data.length === 0) {
+        return { success: true, count: 0, message: "Tidak ada data untuk diarsipkan." };
+      }
+
+      // 2. Prepare for insert to archives
+      const archivesToInsert = data.map(item => ({
+        archive_name: archiveName,
+        student_name: item.student_name,
+        class_name: item.class_name,
+        attendance_option: item.attendance_option,
+        confirmed_at: item.confirmed_at
+      }));
+
+      const { error: insertError } = await supabase
+        .from('archives')
+        .insert(archivesToInsert);
+      
+      if (insertError) throw insertError;
+
+      // 3. Clear these from active attendance table
+      const { error: deleteError } = await supabase
+        .from('attendance')
+        .delete()
+        .eq('event_name', eventName);
+      
+      if (deleteError) throw deleteError;
+
+      return { success: true, count: data.length };
+    } catch (err) {
+      console.error("Supabase archiveAttendance error, falling back to local:", err);
+    }
+  }
+
+  const db = getLocalDb();
+  const toArchive = db.attendance.filter(a => a.event_name === eventName);
+  
+  if (toArchive.length === 0) {
+    return { success: true, count: 0, message: "Tidak ada data untuk diarsipkan." };
+  }
+
+  // Save to archives array
+  toArchive.forEach(item => {
+    db.archives.push({
+      archive_name: archiveName,
+      student_name: item.student_name,
+      class_name: item.class_name,
+      attendance_option: item.attendance_option,
+      confirmed_at: item.confirmed_at
+    });
+  });
+
+  // Remove from active attendance
+  db.attendance = db.attendance.filter(a => a.event_name !== eventName);
+  
+  saveLocalDb(db);
+  return { success: true, count: toArchive.length };
+}
+
+// 9. Get unique archive names list (New Feature)
+export async function getArchivesList() {
+  if (isDbConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('archives')
+        .select('archive_name')
+        .order('confirmed_at', { ascending: false });
+      if (error) throw error;
+      
+      const uniqueNames = [...new Set(data.map(item => item.archive_name))];
+      return uniqueNames;
+    } catch (err) {
+      console.error("Supabase getArchivesList error, falling back to local:", err);
+    }
+  }
+
+  const db = getLocalDb();
+  const uniqueNames = [...new Set(db.archives.map(item => item.archive_name))];
+  return uniqueNames.reverse(); // Newest first
+}
+
+// 10. Get data for a specific archive (New Feature)
+export async function getArchiveData(archiveName) {
+  if (isDbConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('archives')
+        .select('*')
+        .eq('archive_name', archiveName)
+        .order('confirmed_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error("Supabase getArchiveData error, falling back to local:", err);
+    }
+  }
+
+  const db = getLocalDb();
+  return db.archives.filter(item => item.archive_name === archiveName);
+}
