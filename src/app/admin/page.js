@@ -276,7 +276,7 @@ export default function AdminPage() {
     }
   };
 
-  // Delete attendance record per student (New Feature)
+  // Delete attendance record per student
   const handleDeleteAttendance = async (studentName, className) => {
     if (!confirm(`Apakah Anda yakin ingin menghapus kehadiran untuk ananda ${studentName} (${className})?`)) {
       return;
@@ -313,7 +313,7 @@ export default function AdminPage() {
     }
   };
 
-  // Save current RSVP list to archive (New Feature)
+  // Save current RSVP list to archive
   const handleArchiveSubmit = async (e) => {
     e.preventDefault();
     if (!archiveNameInput.trim()) {
@@ -426,7 +426,7 @@ export default function AdminPage() {
     }
   };
 
-  // Export list of students who have NOT filled/confirmed attendance (New Feature)
+  // Export list of students who have NOT filled/confirmed attendance
   const handleExportUnsubmitted = async () => {
     setIsLoading(true);
     setAlert(null);
@@ -474,16 +474,13 @@ export default function AdminPage() {
         return a['Nama Siswa'].localeCompare(b['Nama Siswa']);
       });
 
-      // Add "No" index column
       const excelData = unsubmittedStudents.map((item, index) => ({
         'No': index + 1,
         ...item
       }));
 
-      // 3. Write Excel
       const worksheet = XLSX.utils.json_to_sheet(excelData);
 
-      // Auto-fit widths
       const maxLens = {};
       excelData.forEach(row => {
         Object.keys(row).forEach(key => {
@@ -512,6 +509,112 @@ export default function AdminPage() {
     }
   };
 
+  // Helper function to build attendance sheet structured rows for Excel (New Feature)
+  const generateGenderSheetData = (gender) => {
+    const classGroups = {};
+
+    rsvpList.forEach(item => {
+      const opt = item.attendance_option.toLowerCase();
+      const siswa = item.student_name;
+      const kelas = item.class_name;
+
+      if (opt === 'tidak hadir') return;
+
+      const attendees = [];
+
+      // Determine participants based on the attendance options and requested gender
+      if (gender === 'L') {
+        if (opt === 'ayah dan bunda' || opt === 'ayah' || opt === 'ayah dan akhwat') {
+          attendees.push(`Ayah (${siswa})`);
+        } else if (opt === 'ayah dan ikhwan') {
+          attendees.push(`Ayah (${siswa})`, `Ikhwan (${siswa})`);
+        } else if (opt === 'bunda dan ikhwan') {
+          attendees.push(`Ikhwan (${siswa})`);
+        }
+      } else { // 'P'
+        if (opt === 'ayah dan bunda' || opt === 'bunda' || opt === 'bunda dan ikhwan') {
+          attendees.push(`Bunda (${siswa})`);
+        } else if (opt === 'bunda dan akhwat') {
+          attendees.push(`Bunda (${siswa})`, `Akhwat (${siswa})`);
+        } else if (opt === 'ayah dan akhwat') {
+          attendees.push(`Akhwat (${siswa})`);
+        }
+      }
+
+      if (attendees.length > 0) {
+        if (!classGroups[kelas]) {
+          classGroups[kelas] = [];
+        }
+        classGroups[kelas].push(...attendees);
+      }
+    });
+
+    // 1. Initial page header lines
+    const rows = [
+      ['SEKOLAH ISLAM MUMTAZ'],
+      ['ABSENSI KEHADIRAN'],
+      [eventName.toUpperCase()],
+      [eventDate ? formatDateDisplay(eventDate).toUpperCase() : ''],
+      [], // Blank row spacing
+    ];
+
+    // 2. Add classes and their attendees
+    const sortedClasses = Object.keys(classGroups).sort();
+
+    sortedClasses.forEach(kelasName => {
+      const attendees = classGroups[kelasName].sort();
+
+      rows.push([`Kelas: ${kelasName}`]); // Group header
+      rows.push(['Nama', 'Tanda Tangan']); // Column headers
+
+      attendees.forEach(name => {
+        rows.push([name, '']); // Left column: name, Right column: blank for signature
+      });
+
+      rows.push([]); // Blank separator row
+    });
+
+    return rows;
+  };
+
+  // Export printed attendance sheet with L & P in separate sheets (New Feature)
+  const handleExportAbsensi = () => {
+    if (rsvpList.length === 0) {
+      setAlert({ type: 'danger', message: 'Tidak ada data konfirmasi untuk membuat absensi.' });
+      return;
+    }
+
+    try {
+      const workbook = XLSX.utils.book_new();
+
+      // 1. Generate Laki-laki sheet
+      const maleRows = generateGenderSheetData('L');
+      const maleWorksheet = XLSX.utils.aoa_to_sheet(maleRows);
+      
+      // Auto-fit or fix widths: Nama column is wider (A), Tanda Tangan is narrower (B)
+      maleWorksheet['!cols'] = [
+        { wch: 35 }, // Column A (Nama)
+        { wch: 20 }  // Column B (Tanda Tangan)
+      ];
+      XLSX.utils.book_append_sheet(workbook, maleWorksheet, 'Absensi Laki-laki');
+
+      // 2. Generate Perempuan sheet
+      const femaleRows = generateGenderSheetData('P');
+      const femaleWorksheet = XLSX.utils.aoa_to_sheet(femaleRows);
+      femaleWorksheet['!cols'] = [
+        { wch: 35 }, // Column A (Nama)
+        { wch: 20 }  // Column B (Tanda Tangan)
+      ];
+      XLSX.utils.book_append_sheet(workbook, femaleWorksheet, 'Absensi Perempuan');
+
+      // Write file download
+      XLSX.writeFile(workbook, `Daftar_Absensi_Cetak_${eventName.replace(/\s+/g, '_')}.xlsx`);
+      setAlert({ type: 'success', message: 'Berhasil mengunduh daftar absensi cetak (Laki-laki & Perempuan)!' });
+    } catch (err) {
+      setAlert({ type: 'danger', message: 'Gagal mengekspor absensi: ' + err.message });
+    }
+  };
+
   // Calculate Gender Statistics based on RSVP Attendance Options
   const calculateStats = () => {
     let maleTotal = 0;
@@ -523,7 +626,7 @@ export default function AdminPage() {
       
       if (opt === 'tidak hadir') {
         tidakHadirCount += 1;
-        return; // Don't add to male/female attendee counts
+        return;
       }
 
       switch (opt) {
@@ -664,6 +767,19 @@ export default function AdminPage() {
       setAlert({ type: 'success', message: 'Berhasil mengunduh file rekap kehadiran per kelas!' });
     } catch (err) {
       setAlert({ type: 'danger', message: 'Gagal mengekspor file: ' + err.message });
+    }
+  };
+
+  const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      return new Date(dateStr).toLocaleDateString('id-ID', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (e) {
+      return dateStr;
     }
   };
 
@@ -812,7 +928,7 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Section 2: Archive Manager Form (New Feature) */}
+          {/* Section 2: Archive Manager Form */}
           <div className="card">
             <div className="card-header" style={{ padding: '20px 15px', borderBottom: '2px solid var(--accent-gold)' }}>
               <h2 className="card-title" style={{ fontSize: '1.1rem' }}>Manajemen Arsip Kehadiran</h2>
@@ -995,6 +1111,13 @@ export default function AdminPage() {
                   style={{ padding: '10px 15px', fontSize: '0.85rem', background: '#E74C3C', border: '1px solid #C0392B', color: 'white' }}
                 >
                   ⚠️ Ekspor Siswa Belum Mengisi
+                </button>
+                <button 
+                  className="btn btn-primary" 
+                  onClick={handleExportAbsensi}
+                  style={{ padding: '10px 15px', fontSize: '0.85rem', background: '#2ECC71', border: '1px solid #27AE60', color: 'white' }}
+                >
+                  📝 Ekspor Daftar Absensi (L & P)
                 </button>
               </div>
 
