@@ -8,7 +8,8 @@ export default function Home() {
   const [eventSettings, setEventSettings] = useState({
     event_name: 'Loading...',
     event_date: '',
-    active_attendance: []
+    active_attendance: [],
+    is_rsvp_active: true
   });
   const [classList, setClassList] = useState([]);
   const [studentList, setStudentList] = useState([]);
@@ -283,105 +284,111 @@ Jazaakumullahu khairan.`;
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
-            {/* Class Dropdown */}
-            <div className="form-group">
-              <label className="form-label" htmlFor="class-select">
-                Kelas
-              </label>
-              <select
-                id="class-select"
-                className="form-select"
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
-                required
-              >
-                <option value="">-- Pilih Kelas --</option>
-                {classList.map((className) => (
-                  <option key={className} value={className}>
-                    {className}
-                  </option>
-                ))}
-              </select>
+          {eventSettings.is_rsvp_active === false ? (
+            <div className="alert alert-danger" style={{ textAlign: 'center', margin: '10px 0 0 0', padding: '25px 20px', fontWeight: '700', fontSize: '1.1rem', color: '#C0392B', background: '#FDEDEC', border: '1.5px solid #FADBD8', borderRadius: '12px' }}>
+              ⚠️ Konfirmasi kehadiran sudah ditutup
             </div>
-
-            {/* Student Autocomplete Input */}
-            <div className="form-group" ref={autocompleteRef}>
-              <label className="form-label" htmlFor="student-input">
-                Siswa
-              </label>
-              <div className="autocomplete-container">
-                <input
-                  id="student-input"
-                  type="text"
-                  className="form-input"
-                  placeholder={selectedClass ? "Ketik nama siswa..." : "Pilih kelas terlebih dahulu"}
-                  value={studentInput}
-                  onChange={handleStudentInputChange}
-                  onKeyDown={handleKeyDown}
-                  disabled={!selectedClass}
-                  autoComplete="off"
+          ) : (
+            <form onSubmit={handleSubmit}>
+              {/* Class Dropdown */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="class-select">
+                  Kelas
+                </label>
+                <select
+                  id="class-select"
+                  className="form-select"
+                  value={selectedClass}
+                  onChange={(e) => setSelectedClass(e.target.value)}
                   required
-                />
-                
-                {showSuggestions && (
-                  <ul className="suggestions-list">
-                    {suggestions.length > 0 ? (
-                      suggestions.map((studentName, index) => (
-                        <li
-                          key={studentName}
-                          className={`suggestion-item ${index === activeSuggestionIndex ? 'active' : ''}`}
-                          onClick={() => selectSuggestion(studentName)}
-                        >
-                          {studentName}
-                        </li>
-                      ))
-                    ) : (
-                      <li className="no-suggestions">Siswa tidak ditemukan</li>
-                    )}
-                  </ul>
-                )}
+                >
+                  <option value="">-- Pilih Kelas --</option>
+                  {classList.map((className) => (
+                    <option key={className} value={className}>
+                      {className}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
 
-            {/* Attendance Dropdown */}
-            <div className="form-group">
-              <label className="form-label" htmlFor="attendance-select">
-                Kehadiran
-              </label>
-              <select
-                id="attendance-select"
-                className="form-select"
-                value={selectedAttendance}
-                onChange={(e) => setSelectedAttendance(e.target.value)}
-                required
+              {/* Student Autocomplete Input */}
+              <div className="form-group" ref={autocompleteRef}>
+                <label className="form-label" htmlFor="student-input">
+                  Siswa
+                </label>
+                <div className="autocomplete-container">
+                  <input
+                    id="student-input"
+                    type="text"
+                    className="form-input"
+                    placeholder={selectedClass ? "Ketik nama siswa..." : "Pilih kelas terlebih dahulu"}
+                    value={studentInput}
+                    onChange={handleStudentInputChange}
+                    onKeyDown={handleKeyDown}
+                    disabled={!selectedClass}
+                    autoComplete="off"
+                    required
+                  />
+                  
+                  {showSuggestions && (
+                    <ul className="suggestions-list">
+                      {suggestions.length > 0 ? (
+                        suggestions.map((studentName, index) => (
+                          <li
+                            key={studentName}
+                            className={`suggestion-item ${index === activeSuggestionIndex ? 'active' : ''}`}
+                            onClick={() => selectSuggestion(studentName)}
+                          >
+                            {studentName}
+                          </li>
+                        ))
+                      ) : (
+                        <li className="no-suggestions">Siswa tidak ditemukan</li>
+                      )}
+                    </ul>
+                  )}
+                </div>
+              </div>
+
+              {/* Attendance Dropdown */}
+              <div className="form-group">
+                <label className="form-label" htmlFor="attendance-select">
+                  Kehadiran
+                </label>
+                <select
+                  id="attendance-select"
+                  className="form-select"
+                  value={selectedAttendance}
+                  onChange={(e) => setSelectedAttendance(e.target.value)}
+                  required
+                >
+                  <option value="">-- Pilih Kehadiran --</option>
+                  {eventSettings.active_attendance && eventSettings.active_attendance.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Confirm Button */}
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={isLoading || !selectedClass || !studentInput || !selectedAttendance}
+                style={{ marginTop: '10px' }}
               >
-                <option value="">-- Pilih Kehadiran --</option>
-                {eventSettings.active_attendance && eventSettings.active_attendance.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Confirm Button */}
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={isLoading || !selectedClass || !studentInput || !selectedAttendance}
-              style={{ marginTop: '10px' }}
-            >
-              {isLoading ? (
-                <>
-                  <span className="spinner"></span>
-                  Memproses...
-                </>
-              ) : (
-                'Konfirmasi'
-              )}
-            </button>
-          </form>
+                {isLoading ? (
+                  <>
+                    <span className="spinner"></span>
+                    Memproses...
+                  </>
+                ) : (
+                  'Konfirmasi'
+                )}
+              </button>
+            </form>
+          )}
         </div>
       </div>
 

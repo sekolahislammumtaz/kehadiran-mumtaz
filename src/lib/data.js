@@ -67,7 +67,8 @@ export async function getSettings() {
       return {
         event_name: settingsMap.event_name || 'Kegiatan Sekolah',
         event_date: settingsMap.event_date || '2026-07-15',
-        active_attendance: settingsMap.active_attendance || []
+        active_attendance: settingsMap.active_attendance || [],
+        is_rsvp_active: settingsMap.is_rsvp_active !== undefined ? settingsMap.is_rsvp_active : true
       };
     } catch (err) {
       console.error("Supabase getSettings error, falling back to local:", err);
@@ -75,17 +76,21 @@ export async function getSettings() {
   }
 
   const db = getLocalDb();
+  if (db.settings.is_rsvp_active === undefined) {
+    db.settings.is_rsvp_active = true;
+  }
   return db.settings;
 }
 
 export async function saveSettings(settings) {
   if (isDbConfigured()) {
     try {
-      const { event_name, event_date, active_attendance } = settings;
+      const { event_name, event_date, active_attendance, is_rsvp_active } = settings;
       const updates = [
         { key: 'event_name', value: event_name },
         { key: 'event_date', value: event_date },
-        { key: 'active_attendance', value: active_attendance }
+        { key: 'active_attendance', value: active_attendance },
+        { key: 'is_rsvp_active', value: is_rsvp_active !== undefined ? is_rsvp_active : true }
       ];
 
       for (const item of updates) {

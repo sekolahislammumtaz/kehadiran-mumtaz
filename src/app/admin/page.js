@@ -27,6 +27,7 @@ export default function AdminPage() {
   const [activeOptions, setActiveOptions] = useState([]);
   const [rsvpList, setRsvpList] = useState([]);
   const [classList, setClassList] = useState([]);
+  const [isRsvpActive, setIsRsvpActive] = useState(true);
   
   // Archiving States
   const [archivesList, setArchivesList] = useState([]);
@@ -89,6 +90,7 @@ export default function AdminPage() {
       setEventName(settingsData.event_name);
       setEventDate(settingsData.event_date);
       setActiveOptions(settingsData.active_attendance || []);
+      setIsRsvpActive(settingsData.is_rsvp_active !== undefined ? settingsData.is_rsvp_active : true);
       
       // Pre-fill archive name input
       if (settingsData.event_name) {
@@ -157,7 +159,8 @@ export default function AdminPage() {
           password: adminPassword,
           event_name: eventName,
           event_date: eventDate,
-          active_attendance: activeOptions
+          active_attendance: activeOptions,
+          is_rsvp_active: isRsvpActive
         })
       });
 
@@ -898,6 +901,20 @@ export default function AdminPage() {
                     onChange={(e) => setEventDate(e.target.value)}
                     required
                   />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Status Konfirmasi Kehadiran</label>
+                  <div className="checkbox-group">
+                    <label className="checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={isRsvpActive}
+                        onChange={(e) => setIsRsvpActive(e.target.checked)}
+                      />
+                      <span style={{ fontWeight: '500' }}>Buka Konfirmasi Kehadiran (Orang tua dapat mengisi)</span>
+                    </label>
+                  </div>
                 </div>
 
                 <div className="form-group">
