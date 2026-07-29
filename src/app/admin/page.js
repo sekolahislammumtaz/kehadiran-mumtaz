@@ -45,6 +45,7 @@ export default function AdminPage() {
   const [alert, setAlert] = useState(null);
   const [importPreview, setImportPreview] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [importAlert, setImportAlert] = useState(null);
 
   // Check sessionStorage on mount
   useEffect(() => {
@@ -189,6 +190,7 @@ export default function AdminPage() {
     if (!file) return;
 
     setSelectedFile(file);
+    setImportAlert(null); // Clear previous file selection error
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
@@ -202,12 +204,14 @@ export default function AdminPage() {
           throw new Error('File excel kosong atau tidak memiliki baris header.');
         }
 
-        const headers = rawRows[0].map(h => String(h).trim().toLowerCase());
+        // Clean headers and find columns
+        const headers = rawRows[0].map(h => String(h || '').trim().toLowerCase());
         const classIdx = headers.findIndex(h => h.includes('kelas'));
         const studentIdx = headers.findIndex(h => h.includes('siswa') || h.includes('nama'));
 
         if (classIdx === -1 || studentIdx === -1) {
-          throw new Error('Kolom "Kelas" dan "Siswa" tidak ditemukan di baris pertama Excel.');
+          const detectedHeaders = rawRows[0].filter(h => h !== null && h !== undefined && String(h).trim() !== '').join(', ');
+          throw new Error(`Kolom wajib "Kelas" dan "Siswa" (atau "Nama Siswa") tidak terdeteksi di baris pertama Excel. Kolom yang terdeteksi: [${detectedHeaders || 'Tidak Ada'}]`);
         }
 
         const parsedRows = [];
@@ -216,7 +220,8 @@ export default function AdminPage() {
           const kelas = row[classIdx];
           const siswa = row[studentIdx];
           
-          if (kelas && siswa) {
+          if (kelas !== undefined && kelas !== null && String(kelas).trim() !== '' &&
+              siswa !== undefined && siswa !== null && String(siswa).trim() !== '') {
             parsedRows.push({
               kelas: String(kelas).trim(),
               siswa: String(siswa).trim()
@@ -225,15 +230,18 @@ export default function AdminPage() {
         }
 
         if (parsedRows.length === 0) {
-          throw new Error('Tidak ada data siswa yang valid ditemukan.');
+          throw new Error('Tidak ada data siswa yang valid ditemukan di bawah baris header.');
         }
 
         setImportPreview(parsedRows);
-        setAlert(null);
+        setImportAlert(null);
       } catch (err) {
-        setAlert({ type: 'danger', message: err.message });
+        setImportAlert({ type: 'danger', message: err.message });
         setImportPreview(null);
         setSelectedFile(null);
+      } finally {
+        // Reset target value so selecting the same file again triggers onChange
+        e.target.value = '';
       }
     };
     reader.readAsArrayBuffer(file);
@@ -266,6 +274,10 @@ export default function AdminPage() {
         type: 'success',
         message: `Berhasil mengimpor ${data.count} siswa & kelas ke database!`
       });
+      setImportAlert({
+        type: 'success',
+        message: `Berhasil mengimpor ${data.count} siswa & kelas ke database!`
+      });
       setImportPreview(null);
       setSelectedFile(null);
       
@@ -274,6 +286,7 @@ export default function AdminPage() {
       setClassList(classesData);
     } catch (err) {
       setAlert({ type: 'danger', message: err.message });
+      setImportAlert({ type: 'danger', message: err.message });
     } finally {
       setIsImporting(false);
     }
@@ -1013,6 +1026,11 @@ export default function AdminPage() {
                 <p style={{ fontSize: '0.85rem', color: 'var(--primary-navy)', marginBottom: '10px', lineHeight: '1.4' }}>
                   Unggah file Excel (.xlsx) dengan baris pertama memiliki header kolom: <strong>Kelas</strong> dan <strong>Siswa</strong> (atau <strong>Nama Siswa</strong>).
                 </p>
+                {importAlert && (
+                  <div className={`alert alert-${importAlert.type}`} style={{ padding: '10px 15px', fontSize: '0.85rem', marginBottom: '12px' }}>
+                    {importAlert.message}
+                  </div>
+                )}
                 <div 
                   className="upload-area" 
                   onClick={() => document.getElementById('file-input').click()}
