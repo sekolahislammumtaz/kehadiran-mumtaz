@@ -60,10 +60,14 @@ CREATE TABLE classes (
 CREATE TABLE students (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
     class_id INT REFERENCES classes(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (name, class_id)
 );
+
+-- (Catatan: Jika tabel students sudah pernah dibuat sebelumnya, jalankan query migrasi ini:)
+-- ALTER TABLE students ADD COLUMN IF NOT EXISTS email VARCHAR(255);
 
 -- Tabel untuk menyimpan konfirmasi kehadiran
 CREATE TABLE attendance (
@@ -118,12 +122,12 @@ INSERT INTO settings (key, value) VALUES
 ---
 
 ## Format File Excel Impor Siswa
-Untuk mengimpor data siswa di halaman admin, buat berkas Excel `.xlsx` dengan format kolom sebagai berikut (baris pertama harus header):
+Untuk mengimpor data siswa di halaman admin, buat berkas Excel `.xlsx` dengan format 3 kolom sebagai berikut (baris pertama harus header):
 
-| Kelas  | Siswa              |
-|--------|--------------------|
-| Kelas 1| Muhammad Rayhan    |
-| Kelas 1| Aisyah Az Zahra    |
-| Kelas 2| Ahmad Yusuf        |
+| Kelas   | Nama Siswa        | Email                 |
+|---------|-------------------|-----------------------|
+| Kelas 7 | Muhammad Rayhan   | rayhan@example.com    |
+| Kelas 7 | Aisyah Az Zahra   | aisyah@example.com    |
+| Kelas 8 | Ahmad Yusuf       | yusuf@example.com     |
 
-*Catatan: Nama kolom bersifat case-insensitive, jadi "kelas" dan "siswa" / "nama siswa" akan otomatis terdeteksi.*
+*Catatan: Nama kolom bersifat case-insensitive. Sistem secara otomatis mendeteksi kolom "Kelas", "Nama Siswa" (atau "Siswa"), dan "Email" (atau "Surel"). Anda juga dapat langsung mengunduh template Excel siap pakai melalui tombol di halaman Admin.*

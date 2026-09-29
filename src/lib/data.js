@@ -137,12 +137,12 @@ export async function getStudents(className = null) {
     try {
       let query = supabase
         .from('students')
-        .select('name, classes(name)');
+        .select('name, email, classes(name)');
       
       if (className) {
         const { data, error } = await supabase
           .from('students')
-          .select('name, classes!inner(name)')
+          .select('name, email, classes!inner(name)')
           .eq('classes.name', className)
           .order('name', { ascending: true });
         if (error) throw error;
@@ -150,7 +150,7 @@ export async function getStudents(className = null) {
       } else {
         const { data, error } = await query.order('name', { ascending: true });
         if (error) throw error;
-        return data.map(s => ({ name: s.name, class_name: s.classes?.name }));
+        return data.map(s => ({ name: s.name, email: s.email, class_name: s.classes?.name }));
       }
     } catch (err) {
       console.error("Supabase getStudents error, falling back to local:", err);
@@ -164,7 +164,11 @@ export async function getStudents(className = null) {
       .map(s => s.name)
       .sort();
   }
-  return db.students.sort((a, b) => a.name.localeCompare(b.name));
+  return db.students.map(s => ({
+    name: s.name,
+    class_name: s.class_name,
+    email: s.email || ''
+  })).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // 4. Import student and class data
@@ -192,6 +196,7 @@ export async function importData(rows) {
 
       const studentsToInsert = rows.map(r => ({
         name: r.siswa.trim(),
+        email: r.email ? r.email.trim() : null,
         class_id: classMap[r.kelas.trim()]
       }));
 
@@ -213,6 +218,7 @@ export async function importData(rows) {
   db.students = rows.map((r, index) => ({
     id: index + 1,
     name: r.siswa.trim(),
+    email: r.email ? r.email.trim() : '',
     class_name: r.kelas.trim()
   }));
 

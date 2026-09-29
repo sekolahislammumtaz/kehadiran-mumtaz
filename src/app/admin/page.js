@@ -208,10 +208,11 @@ export default function AdminPage() {
         const headers = rawRows[0].map(h => String(h || '').trim().toLowerCase());
         const classIdx = headers.findIndex(h => h.includes('kelas'));
         const studentIdx = headers.findIndex(h => h.includes('siswa') || h.includes('nama'));
+        const emailIdx = headers.findIndex(h => h.includes('email') || h.includes('surel') || h.includes('mail'));
 
-        if (classIdx === -1 || studentIdx === -1) {
+        if (classIdx === -1 || studentIdx === -1 || emailIdx === -1) {
           const detectedHeaders = rawRows[0].filter(h => h !== null && h !== undefined && String(h).trim() !== '').join(', ');
-          throw new Error(`Kolom wajib "Kelas" dan "Siswa" (atau "Nama Siswa") tidak terdeteksi di baris pertama Excel. Kolom yang terdeteksi: [${detectedHeaders || 'Tidak Ada'}]`);
+          throw new Error(`Kolom wajib "Kelas", "Nama Siswa" (atau "Siswa"), dan "Email" belum lengkap di baris pertama Excel. Kolom yang terdeteksi: [${detectedHeaders || 'Tidak Ada'}]. Pastikan ada 3 kolom: Kelas, Nama Siswa, dan Email.`);
         }
 
         const parsedRows = [];
@@ -219,12 +220,14 @@ export default function AdminPage() {
           const row = rawRows[i];
           const kelas = row[classIdx];
           const siswa = row[studentIdx];
+          const email = row[emailIdx];
           
           if (kelas !== undefined && kelas !== null && String(kelas).trim() !== '' &&
               siswa !== undefined && siswa !== null && String(siswa).trim() !== '') {
             parsedRows.push({
               kelas: String(kelas).trim(),
-              siswa: String(siswa).trim()
+              siswa: String(siswa).trim(),
+              email: email !== undefined && email !== null ? String(email).trim() : ''
             });
           }
         }
@@ -245,6 +248,43 @@ export default function AdminPage() {
       }
     };
     reader.readAsArrayBuffer(file);
+  };
+
+  // Download Excel Template with 3 columns (Kelas, Nama Siswa, Email)
+  const handleDownloadTemplate = () => {
+    try {
+      const templateData = [
+        {
+          'Kelas': 'Kelas 7',
+          'Nama Siswa': 'Muhammad Rayhan',
+          'Email': 'rayhan@example.com'
+        },
+        {
+          'Kelas': 'Kelas 7',
+          'Nama Siswa': 'Aisyah Az Zahra',
+          'Email': 'aisyah@example.com'
+        },
+        {
+          'Kelas': 'Kelas 8',
+          'Nama Siswa': 'Ahmad Yusuf',
+          'Email': 'yusuf@example.com'
+        }
+      ];
+
+      const worksheet = XLSX.utils.json_to_sheet(templateData);
+      worksheet['!cols'] = [
+        { wch: 15 },
+        { wch: 30 },
+        { wch: 30 }
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Data Siswa');
+
+      XLSX.writeFile(workbook, 'Template_Impor_Siswa_3_Kolom.xlsx');
+    } catch (err) {
+      setImportAlert({ type: 'danger', message: 'Gagal mengunduh template: ' + err.message });
+    }
   };
 
   // Upload Student Data
@@ -472,6 +512,7 @@ export default function AdminPage() {
           unsubmittedStudents.push({
             'Nama Siswa': student.name,
             'Kelas': student.class_name,
+            'Email': student.email || '-',
             'Keterangan': 'Belum Konfirmasi Kehadiran'
           });
         }
@@ -1024,8 +1065,29 @@ export default function AdminPage() {
             <div className="card-body" style={{ padding: '20px' }}>
               <div className="form-group" style={{ marginBottom: '15px' }}>
                 <p style={{ fontSize: '0.85rem', color: 'var(--primary-navy)', marginBottom: '10px', lineHeight: '1.4' }}>
-                  Unggah file Excel (.xlsx) dengan baris pertama memiliki header kolom: <strong>Kelas</strong> dan <strong>Siswa</strong> (atau <strong>Nama Siswa</strong>).
+                  Unggah file Excel (.xlsx) dengan 3 kolom pada baris pertama: <strong>Kelas</strong>, <strong>Nama Siswa</strong> (atau <strong>Siswa</strong>), dan <strong>Email</strong>.
                 </p>
+                <div style={{ marginBottom: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={handleDownloadTemplate}
+                    className="btn btn-secondary"
+                    style={{ 
+                      width: '100%', 
+                      padding: '8px 12px', 
+                      fontSize: '0.82rem', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      gap: '6px',
+                      background: '#F1F5F9',
+                      color: 'var(--primary-navy)',
+                      border: '1px solid #CBD5E1'
+                    }}
+                  >
+                    📥 Unduh Contoh Template Excel (3 Kolom)
+                  </button>
+                </div>
                 {importAlert && (
                   <div className={`alert alert-${importAlert.type}`} style={{ padding: '10px 15px', fontSize: '0.85rem', marginBottom: '12px' }}>
                     {importAlert.message}
@@ -1058,10 +1120,15 @@ export default function AdminPage() {
                     <span>Pratinjau Data:</span>
                     <span style={{ color: 'var(--accent-gold-hover)' }}>{importPreview.length} baris terdeteksi</span>
                   </div>
-                  <div style={{ maxHeight: '100px', overflowY: 'auto', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '8px', fontSize: '0.8rem', background: '#F8FAFC' }}>
+                  <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '8px', fontSize: '0.8rem', background: '#F8FAFC' }}>
                     {importPreview.slice(0, 5).map((row, i) => (
-                      <div key={i} style={{ borderBottom: '1px solid #EDF2F7', padding: '3px 0' }}>
-                        [{row.kelas}] {row.siswa}
+                      <div key={i} style={{ borderBottom: '1px solid #EDF2F7', padding: '4px 0', display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                        <div>
+                          <strong>[{row.kelas}]</strong> {row.siswa}
+                        </div>
+                        <div style={{ color: '#64748B', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {row.email || '(tanpa email)'}
+                        </div>
                       </div>
                     ))}
                     {importPreview.length > 5 && (
