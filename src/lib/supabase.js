@@ -11,8 +11,8 @@ if (supabaseUrl && supabaseKey) {
       persistSession: false,
     },
   });
-} else {
-  console.warn("Supabase URL or Key is missing. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
+} else if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL && !process.env.RAILWAY_DATABASE_URL) {
+  // Silent fallback to local storage if neither Railway nor Supabase is set
 }
 
 export { supabase };
