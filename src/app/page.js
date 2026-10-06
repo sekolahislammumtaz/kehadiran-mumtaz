@@ -205,30 +205,15 @@ export default function Home() {
 
       setAlert({
         type: 'success',
-        message: 'Konfirmasi berhasil disimpan! Mengarahkan ke WhatsApp...'
+        message: 'Konfirmasi kehadiran berhasil disimpan! Terima kasih atas konfirmasinya.'
       });
-
-      // Prepare WhatsApp URL
-      const waNumber = '628999741234';
-      const waMessage = `Assalamu'alaikum. Kami orang tua dari ananda ${finalStudent} mengonfirmasi kehadiran pada kegiatan ${eventSettings.event_name} :
-${selectedAttendance}
-Jazaakumullahu khairan.`;
-
-      const encodedMessage = encodeURIComponent(waMessage);
-      const waUrl = `https://wa.me/${waNumber}?text=${encodedMessage}`;
 
       // Reset form fields
       setSelectedClass('');
       setStudentInput('');
       setSelectedStudent(null);
       setSelectedAttendance('');
-
-      // Redirect after a short delay so user sees success message
-      setTimeout(() => {
-        window.open(waUrl, '_blank');
-        setIsLoading(false);
-      }, 1500);
-
+      setIsLoading(false);
     } catch (err) {
       console.error(err);
       setAlert({
