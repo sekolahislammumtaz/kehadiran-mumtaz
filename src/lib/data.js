@@ -1,9 +1,8 @@
-import { isRailwayConfigured, query as railwayQuery } from './railway';
-import { supabase, isDbConfigured as isSupabaseConfigured } from './supabase';
+import { supabase, isDbConfigured } from './supabase';
 import fs from 'fs';
 import path from 'path';
 
-// Path for local mock database in case Railway/Supabase is not configured yet
+// Path for local mock database in case Supabase is not configured yet
 const MOCK_DB_PATH = path.join(process.cwd(), 'src', 'lib', 'mock_db.json');
 
 // Initialize local mock DB structure
@@ -53,8 +52,7 @@ function saveLocalDb(data) {
 
 // 1. Settings (Event name, Date, Active Options)
 export async function getSettings() {
-  // Method 1: Supabase Client (HTTPS API, recommended on Vercel)
-  if (isSupabaseConfigured()) {
+  if (isDbConfigured()) {
     try {
       const { data, error } = await supabase
         .from('settings')
@@ -62,7 +60,7 @@ export async function getSettings() {
       if (error) throw error;
       
       const settingsMap = {};
-      data.forEach(item => {
+      (data || []).forEach(item => {
         settingsMap[item.key] = item.value;
       });
 
@@ -74,36 +72,10 @@ export async function getSettings() {
       };
     } catch (err) {
       console.error("Supabase getSettings error:", err.message);
-      throw new Error(`Koneksi Supabase gagal: ${err.message}. Periksa SUPABASE_URL & SUPABASE_SERVICE_ROLE_KEY.`);
+      throw new Error(`Koneksi Supabase gagal: ${err.message}. Pastikan tabel 'settings' sudah dibuat di Supabase SQL Editor.`);
     }
   }
 
-  // Method 2: PostgreSQL Pool (DATABASE_URL from Railway or Supabase Pooler)
-  if (isRailwayConfigured()) {
-    try {
-      const res = await railwayQuery('SELECT key, value FROM settings');
-      const settingsMap = {};
-      res.rows.forEach(item => {
-        let val = item.value;
-        if (typeof val === 'string') {
-          try { val = JSON.parse(val); } catch (e) {}
-        }
-        settingsMap[item.key] = val;
-      });
-
-      return {
-        event_name: settingsMap.event_name || 'Kegiatan Sekolah',
-        event_date: settingsMap.event_date || '2026-07-15',
-        active_attendance: settingsMap.active_attendance || [],
-        is_rsvp_active: settingsMap.is_rsvp_active !== undefined ? settingsMap.is_rsvp_active : true
-      };
-    } catch (err) {
-      console.error("PostgreSQL (DATABASE_URL) getSettings error:", err.message);
-      throw new Error(`Koneksi database PostgreSQL (DATABASE_URL) gagal: ${err.message}.`);
-    }
-  }
-
-  // Method 3: Local Mock DB (Offline / Initial setup without cloud DB)
   const db = getLocalDb();
   if (db.settings.is_rsvp_active === undefined) {
     db.settings.is_rsvp_active = true;
@@ -114,8 +86,7 @@ export async function getSettings() {
 export async function saveSettings(settings) {
   const { event_name, event_date, active_attendance, is_rsvp_active } = settings;
 
-  // Method 1: Supabase Client (HTTPS API)
-  if (isSupabaseConfigured()) {
+  if (isDbConfigured()) {
     try {
       const updates = [
         { key: 'event_name', value: event_name },
@@ -133,35 +104,10 @@ export async function saveSettings(settings) {
       return { success: true };
     } catch (err) {
       console.error("Supabase saveSettings error:", err.message);
-      throw new Error(`Gagal menyimpan ke Supabase: ${err.message}.`);
+      throw new Error(`Gagal menyimpan ke Supabase: ${err.message}`);
     }
   }
 
-  // Method 2: PostgreSQL Pool (DATABASE_URL)
-  if (isRailwayConfigured()) {
-    try {
-      const updates = [
-        { key: 'event_name', value: JSON.stringify(event_name) },
-        { key: 'event_date', value: JSON.stringify(event_date) },
-        { key: 'active_attendance', value: JSON.stringify(active_attendance) },
-        { key: 'is_rsvp_active', value: JSON.stringify(is_rsvp_active !== undefined ? is_rsvp_active : true) }
-      ];
-
-      for (const item of updates) {
-        await railwayQuery(
-          `INSERT INTO settings (key, value) VALUES ($1, $2::jsonb)
-           ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
-          [item.key, item.value]
-        );
-      }
-      return { success: true };
-    } catch (err) {
-      console.error("PostgreSQL (DATABASE_URL) saveSettings error:", err.message);
-      throw new Error(`Gagal menyimpan ke database PostgreSQL (DATABASE_URL): ${err.message}.`);
-    }
-  }
-
-  // Method 3: Local Mock DB
   const db = getLocalDb();
   db.settings = { ...db.settings, ...settings };
   saveLocalDb(db);
@@ -170,27 +116,17 @@ export async function saveSettings(settings) {
 
 // 2. Classes
 export async function getClasses() {
-  if (isSupabaseConfigured()) {
+  if (isDbConfigured()) {
     try {
       const { data, error } = await supabase
         .from('classes')
         .select('name')
         .order('name', { ascending: true });
       if (error) throw error;
-      return data.map(c => c.name);
+      return (data || []).map(c => c.name);
     } catch (err) {
       console.error("Supabase getClasses error:", err.message);
-      throw new Error(`Gagal mengambil data kelas dari Supabase: ${err.message}.`);
-    }
-  }
-
-  if (isRailwayConfigured()) {
-    try {
-      const res = await railwayQuery('SELECT name FROM classes ORDER BY name ASC');
-      return res.rows.map(c => c.name);
-    } catch (err) {
-      console.error("PostgreSQL getClasses error:", err.message);
-      throw new Error(`Gagal mengambil data kelas dari PostgreSQL: ${err.message}.`);
+      throw new Error(`Gagal mengambil data kelas dari Supabase: ${err.message}`);
     }
   }
 
@@ -201,7 +137,7 @@ export async function getClasses() {
 
 // 3. Students (optionally filtered by class)
 export async function getStudents(className = null) {
-  if (isSupabaseConfigured()) {
+  if (isDbConfigured()) {
     try {
       if (className) {
         const { data, error } = await supabase
@@ -210,49 +146,22 @@ export async function getStudents(className = null) {
           .eq('classes.name', className)
           .order('name', { ascending: true });
         if (error) throw error;
-        return data.map(s => s.name);
+        return (data || []).map(s => s.name);
       } else {
         const { data, error } = await supabase
           .from('students')
           .select('name, email, classes(name)')
           .order('name', { ascending: true });
         if (error) throw error;
-        return data.map(s => ({ name: s.name, email: s.email, class_name: s.classes?.name }));
-      }
-    } catch (err) {
-      console.error("Supabase getStudents error:", err.message);
-      throw new Error(`Gagal mengambil data siswa dari Supabase: ${err.message}.`);
-    }
-  }
-
-  if (isRailwayConfigured()) {
-    try {
-      if (className) {
-        const res = await railwayQuery(
-          `SELECT s.name 
-           FROM students s 
-           JOIN classes c ON s.class_id = c.id 
-           WHERE c.name = $1 
-           ORDER BY s.name ASC`,
-          [className]
-        );
-        return res.rows.map(s => s.name);
-      } else {
-        const res = await railwayQuery(
-          `SELECT s.name, s.email, c.name AS class_name 
-           FROM students s 
-           LEFT JOIN classes c ON s.class_id = c.id 
-           ORDER BY s.name ASC`
-        );
-        return res.rows.map(s => ({
+        return (data || []).map(s => ({
           name: s.name,
           email: s.email || '',
-          class_name: s.class_name
+          class_name: s.classes?.name
         }));
       }
     } catch (err) {
-      console.error("PostgreSQL getStudents error:", err.message);
-      throw new Error(`Gagal mengambil data siswa dari PostgreSQL: ${err.message}.`);
+      console.error("Supabase getStudents error:", err.message);
+      throw new Error(`Gagal mengambil data siswa dari Supabase: ${err.message}`);
     }
   }
 
@@ -272,7 +181,7 @@ export async function getStudents(className = null) {
 
 // 4. Import student and class data
 export async function importData(rows) {
-  if (isSupabaseConfigured()) {
+  if (isDbConfigured()) {
     try {
       const uniqueClasses = [...new Set(rows.map(r => r.kelas.trim()))];
       
@@ -289,7 +198,7 @@ export async function importData(rows) {
       if (classesError) throw classesError;
 
       const classMap = {};
-      classesData.forEach(c => {
+      (classesData || []).forEach(c => {
         classMap[c.name] = c.id;
       });
 
@@ -307,42 +216,7 @@ export async function importData(rows) {
       return { success: true, count: rows.length };
     } catch (err) {
       console.error("Supabase importData error:", err.message);
-      throw new Error(`Gagal mengimpor data ke Supabase: ${err.message}.`);
-    }
-  }
-
-  if (isRailwayConfigured()) {
-    try {
-      const uniqueClasses = [...new Set(rows.map(r => r.kelas.trim()))];
-      
-      for (const className of uniqueClasses) {
-        await railwayQuery(
-          'INSERT INTO classes (name) VALUES ($1) ON CONFLICT (name) DO NOTHING',
-          [className]
-        );
-      }
-
-      const classesRes = await railwayQuery('SELECT id, name FROM classes');
-      const classMap = {};
-      classesRes.rows.forEach(c => {
-        classMap[c.name] = c.id;
-      });
-
-      for (const r of rows) {
-        const classId = classMap[r.kelas.trim()];
-        const emailVal = r.email ? r.email.trim() : null;
-        await railwayQuery(
-          `INSERT INTO students (name, class_id, email)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (name, class_id) DO UPDATE SET email = EXCLUDED.email`,
-          [r.siswa.trim(), classId, emailVal]
-        );
-      }
-
-      return { success: true, count: rows.length };
-    } catch (err) {
-      console.error("PostgreSQL importData error:", err.message);
-      throw new Error(`Gagal mengimpor data ke PostgreSQL: ${err.message}.`);
+      throw new Error(`Gagal mengimpor data ke Supabase: ${err.message}`);
     }
   }
 
@@ -363,7 +237,7 @@ export async function importData(rows) {
 
 // 5. RSVP / Attendance Confirmation
 export async function saveAttendance(attendance) {
-  if (isSupabaseConfigured()) {
+  if (isDbConfigured()) {
     try {
       const { error } = await supabase
         .from('attendance')
@@ -372,28 +246,7 @@ export async function saveAttendance(attendance) {
       return { success: true };
     } catch (err) {
       console.error("Supabase saveAttendance error:", err.message);
-      throw new Error(`Gagal menyimpan kehadiran ke Supabase: ${err.message}.`);
-    }
-  }
-
-  if (isRailwayConfigured()) {
-    try {
-      await railwayQuery(
-        `INSERT INTO attendance (student_name, class_name, attendance_option, event_name, confirmed_at)
-         VALUES ($1, $2, $3, $4, NOW())
-         ON CONFLICT (student_name, class_name, event_name)
-         DO UPDATE SET attendance_option = EXCLUDED.attendance_option, confirmed_at = NOW()`,
-        [
-          attendance.student_name,
-          attendance.class_name,
-          attendance.attendance_option,
-          attendance.event_name
-        ]
-      );
-      return { success: true };
-    } catch (err) {
-      console.error("PostgreSQL saveAttendance error:", err.message);
-      throw new Error(`Gagal menyimpan kehadiran ke PostgreSQL: ${err.message}.`);
+      throw new Error(`Gagal menyimpan kehadiran ke Supabase: ${err.message}`);
     }
   }
 
@@ -413,7 +266,7 @@ export async function saveAttendance(attendance) {
 
 // 6. Get Attendance Recap
 export async function getAttendanceRecap(eventName = null) {
-  if (isSupabaseConfigured()) {
+  if (isDbConfigured()) {
     try {
       let query = supabase.from('attendance').select('*');
       if (eventName) {
@@ -421,30 +274,10 @@ export async function getAttendanceRecap(eventName = null) {
       }
       const { data, error } = await query.order('confirmed_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data || [];
     } catch (err) {
       console.error("Supabase getAttendanceRecap error:", err.message);
-      throw new Error(`Gagal mengambil data kehadiran dari Supabase: ${err.message}.`);
-    }
-  }
-
-  if (isRailwayConfigured()) {
-    try {
-      if (eventName) {
-        const res = await railwayQuery(
-          'SELECT * FROM attendance WHERE event_name = $1 ORDER BY confirmed_at DESC',
-          [eventName]
-        );
-        return res.rows;
-      } else {
-        const res = await railwayQuery(
-          'SELECT * FROM attendance ORDER BY confirmed_at DESC'
-        );
-        return res.rows;
-      }
-    } catch (err) {
-      console.error("PostgreSQL getAttendanceRecap error:", err.message);
-      throw new Error(`Gagal mengambil data kehadiran dari PostgreSQL: ${err.message}.`);
+      throw new Error(`Gagal mengambil data kehadiran dari Supabase: ${err.message}`);
     }
   }
 
@@ -457,7 +290,7 @@ export async function getAttendanceRecap(eventName = null) {
 
 // 7. Delete Active Attendance
 export async function deleteAttendance(studentName, className, eventName) {
-  if (isSupabaseConfigured()) {
+  if (isDbConfigured()) {
     try {
       const { error } = await supabase
         .from('attendance')
@@ -469,20 +302,7 @@ export async function deleteAttendance(studentName, className, eventName) {
       return { success: true };
     } catch (err) {
       console.error("Supabase deleteAttendance error:", err.message);
-      throw new Error(`Gagal menghapus data di Supabase: ${err.message}.`);
-    }
-  }
-
-  if (isRailwayConfigured()) {
-    try {
-      await railwayQuery(
-        'DELETE FROM attendance WHERE student_name = $1 AND class_name = $2 AND event_name = $3',
-        [studentName, className, eventName]
-      );
-      return { success: true };
-    } catch (err) {
-      console.error("PostgreSQL deleteAttendance error:", err.message);
-      throw new Error(`Gagal menghapus data di PostgreSQL: ${err.message}.`);
+      throw new Error(`Gagal menghapus data di Supabase: ${err.message}`);
     }
   }
 
@@ -498,7 +318,7 @@ export async function deleteAttendance(studentName, className, eventName) {
 
 // 8. Save Current RSVP to Archive
 export async function archiveAttendance(archiveName, eventName) {
-  if (isSupabaseConfigured()) {
+  if (isDbConfigured()) {
     try {
       const { data, error: fetchError } = await supabase
         .from('attendance')
@@ -532,31 +352,7 @@ export async function archiveAttendance(archiveName, eventName) {
       return { success: true, count: data.length };
     } catch (err) {
       console.error("Supabase archiveAttendance error:", err.message);
-      throw new Error(`Gagal mengarsipkan data di Supabase: ${err.message}.`);
-    }
-  }
-
-  if (isRailwayConfigured()) {
-    try {
-      const insertRes = await railwayQuery(
-        `INSERT INTO archives (archive_name, student_name, class_name, attendance_option, confirmed_at)
-         SELECT $1, student_name, class_name, attendance_option, confirmed_at
-         FROM attendance
-         WHERE event_name = $2
-         RETURNING id`,
-        [archiveName, eventName]
-      );
-
-      const count = insertRes.rowCount || 0;
-      if (count === 0) {
-        return { success: true, count: 0, message: "Tidak ada data untuk diarsipkan." };
-      }
-
-      await railwayQuery('DELETE FROM attendance WHERE event_name = $1', [eventName]);
-      return { success: true, count };
-    } catch (err) {
-      console.error("PostgreSQL archiveAttendance error:", err.message);
-      throw new Error(`Gagal mengarsipkan data di PostgreSQL: ${err.message}.`);
+      throw new Error(`Gagal mengarsipkan data di Supabase: ${err.message}`);
     }
   }
 
@@ -581,33 +377,18 @@ export async function archiveAttendance(archiveName, eventName) {
 
 // 9. Get unique archive names list
 export async function getArchivesList() {
-  if (isSupabaseConfigured()) {
+  if (isDbConfigured()) {
     try {
       const { data, error } = await supabase
         .from('archives')
         .select('archive_name')
         .order('confirmed_at', { ascending: false });
       if (error) throw error;
-      const uniqueNames = [...new Set(data.map(item => item.archive_name))];
+      const uniqueNames = [...new Set((data || []).map(item => item.archive_name))];
       return uniqueNames;
     } catch (err) {
       console.error("Supabase getArchivesList error:", err.message);
-      throw new Error(`Gagal mengambil daftar arsip di Supabase: ${err.message}.`);
-    }
-  }
-
-  if (isRailwayConfigured()) {
-    try {
-      const res = await railwayQuery(
-        `SELECT archive_name 
-         FROM archives 
-         GROUP BY archive_name 
-         ORDER BY MAX(confirmed_at) DESC NULLS LAST`
-      );
-      return res.rows.map(r => r.archive_name);
-    } catch (err) {
-      console.error("PostgreSQL getArchivesList error:", err.message);
-      throw new Error(`Gagal mengambil daftar arsip di PostgreSQL: ${err.message}.`);
+      throw new Error(`Gagal mengambil daftar arsip di Supabase: ${err.message}`);
     }
   }
 
@@ -618,7 +399,7 @@ export async function getArchivesList() {
 
 // 10. Get data for a specific archive
 export async function getArchiveData(archiveName) {
-  if (isSupabaseConfigured()) {
+  if (isDbConfigured()) {
     try {
       const { data, error } = await supabase
         .from('archives')
@@ -626,23 +407,10 @@ export async function getArchiveData(archiveName) {
         .eq('archive_name', archiveName)
         .order('confirmed_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data || [];
     } catch (err) {
       console.error("Supabase getArchiveData error:", err.message);
-      throw new Error(`Gagal mengambil data arsip di Supabase: ${err.message}.`);
-    }
-  }
-
-  if (isRailwayConfigured()) {
-    try {
-      const res = await railwayQuery(
-        'SELECT * FROM archives WHERE archive_name = $1 ORDER BY confirmed_at DESC',
-        [archiveName]
-      );
-      return res.rows;
-    } catch (err) {
-      console.error("PostgreSQL getArchiveData error:", err.message);
-      throw new Error(`Gagal mengambil data arsip di PostgreSQL: ${err.message}.`);
+      throw new Error(`Gagal mengambil data arsip di Supabase: ${err.message}`);
     }
   }
 
