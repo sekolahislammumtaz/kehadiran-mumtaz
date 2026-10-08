@@ -272,9 +272,27 @@ export async function getAttendanceRecap(eventName = null) {
       if (eventName) {
         query = query.eq('event_name', eventName);
       }
-      const { data, error } = await query.order('confirmed_at', { ascending: false });
+      const { data: attendanceData, error } = await query.order('confirmed_at', { ascending: false });
       if (error) throw error;
-      return data || [];
+
+      // Fetch students with their class name to map emails
+      const { data: studentsData } = await supabase
+        .from('students')
+        .select('name, email, classes(name)');
+      
+      const emailMap = {};
+      (studentsData || []).forEach(s => {
+        const key = `${(s.name || '').toLowerCase().trim()}_${(s.classes?.name || '').toLowerCase().trim()}`;
+        emailMap[key] = s.email || '';
+      });
+
+      return (attendanceData || []).map(item => {
+        const key = `${(item.student_name || '').toLowerCase().trim()}_${(item.class_name || '').toLowerCase().trim()}`;
+        return {
+          ...item,
+          email: emailMap[key] || item.email || ''
+        };
+      });
     } catch (err) {
       console.error("Supabase getAttendanceRecap error:", err.message);
       throw new Error(`Gagal mengambil data kehadiran dari Supabase: ${err.message}`);
@@ -282,10 +300,23 @@ export async function getAttendanceRecap(eventName = null) {
   }
 
   const db = getLocalDb();
-  if (eventName) {
-    return db.attendance.filter(a => a.event_name === eventName).reverse();
-  }
-  return [...db.attendance].reverse();
+  let list = eventName
+    ? db.attendance.filter(a => a.event_name === eventName).reverse()
+    : [...db.attendance].reverse();
+
+  const emailMap = {};
+  (db.students || []).forEach(s => {
+    const key = `${(s.name || '').toLowerCase().trim()}_${(s.class_name || '').toLowerCase().trim()}`;
+    emailMap[key] = s.email || '';
+  });
+
+  return list.map(item => {
+    const key = `${(item.student_name || '').toLowerCase().trim()}_${(item.class_name || '').toLowerCase().trim()}`;
+    return {
+      ...item,
+      email: emailMap[key] || item.email || ''
+    };
+  });
 }
 
 // 7. Delete Active Attendance

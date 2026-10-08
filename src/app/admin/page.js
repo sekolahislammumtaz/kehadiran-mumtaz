@@ -735,21 +735,45 @@ export default function AdminPage() {
   });
 
   // Export Attendance Recap (All Data)
-  const handleExportAll = () => {
+  const handleExportAll = async () => {
     if (rsvpList.length === 0) {
       setAlert({ type: 'danger', message: 'Tidak ada data kehadiran untuk diekspor.' });
       return;
     }
 
+    setIsLoading(true);
+    setAlert(null);
+
     try {
-      const excelData = rsvpList.map((item, index) => ({
-        'No': index + 1,
-        'Nama Siswa': item.student_name,
-        'Kelas': item.class_name,
-        'Kehadiran': item.attendance_option,
-        'Acara': item.event_name,
-        'Tanggal Konfirmasi': new Date(item.confirmed_at).toLocaleString('id-ID')
-      }));
+      // Fetch students for email mapping (as fallback if item.email is not already present)
+      let emailMap = {};
+      try {
+        const studentsRes = await fetch('/api/students');
+        if (studentsRes.ok) {
+          const allStudents = await studentsRes.json();
+          allStudents.forEach(s => {
+            const key = `${(s.name || '').toLowerCase().trim()}_${(s.class_name || '').toLowerCase().trim()}`;
+            emailMap[key] = s.email || '';
+          });
+        }
+      } catch (e) {
+        console.warn('Could not fetch students for email mapping:', e);
+      }
+
+      const excelData = rsvpList.map((item, index) => {
+        const key = `${(item.student_name || '').toLowerCase().trim()}_${(item.class_name || '').toLowerCase().trim()}`;
+        const email = item.email || emailMap[key] || '-';
+
+        return {
+          'No': index + 1,
+          'Nama Siswa': item.student_name,
+          'Kelas': item.class_name,
+          'Email': email,
+          'Kehadiran': item.attendance_option,
+          'Acara': item.event_name,
+          'Tanggal Konfirmasi': new Date(item.confirmed_at).toLocaleString('id-ID')
+        };
+      });
 
       const worksheet = XLSX.utils.json_to_sheet(excelData);
       
@@ -768,20 +792,39 @@ export default function AdminPage() {
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Rekap Kehadiran');
 
       XLSX.writeFile(workbook, `Rekap_Kehadiran_Mumtaz_${eventName.replace(/\s+/g, '_')}.xlsx`);
-      setAlert({ type: 'success', message: 'Berhasil mengunduh file rekap kehadiran!' });
+      setAlert({ type: 'success', message: 'Berhasil mengunduh file rekap kehadiran (dengan data Email)!' });
     } catch (err) {
       setAlert({ type: 'danger', message: 'Gagal mengekspor file: ' + err.message });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Export Attendance Recap Per Class (Sheets per class inside one workbook)
-  const handleExportPerClass = () => {
+  const handleExportPerClass = async () => {
     if (rsvpList.length === 0) {
       setAlert({ type: 'danger', message: 'Tidak ada data kehadiran untuk diekspor.' });
       return;
     }
 
+    setIsLoading(true);
+    setAlert(null);
+
     try {
+      let emailMap = {};
+      try {
+        const studentsRes = await fetch('/api/students');
+        if (studentsRes.ok) {
+          const allStudents = await studentsRes.json();
+          allStudents.forEach(s => {
+            const key = `${(s.name || '').toLowerCase().trim()}_${(s.class_name || '').toLowerCase().trim()}`;
+            emailMap[key] = s.email || '';
+          });
+        }
+      } catch (e) {
+        console.warn('Could not fetch students for email mapping:', e);
+      }
+
       const workbook = XLSX.utils.book_new();
 
       const groupedByClass = {};
@@ -795,13 +838,19 @@ export default function AdminPage() {
       Object.keys(groupedByClass).sort().forEach(className => {
         const classRsvps = groupedByClass[className];
         
-        const excelData = classRsvps.map((item, index) => ({
-          'No': index + 1,
-          'Nama Siswa': item.student_name,
-          'Kehadiran': item.attendance_option,
-          'Acara': item.event_name,
-          'Tanggal Konfirmasi': new Date(item.confirmed_at).toLocaleString('id-ID')
-        }));
+        const excelData = classRsvps.map((item, index) => {
+          const key = `${(item.student_name || '').toLowerCase().trim()}_${(item.class_name || '').toLowerCase().trim()}`;
+          const email = item.email || emailMap[key] || '-';
+
+          return {
+            'No': index + 1,
+            'Nama Siswa': item.student_name,
+            'Email': email,
+            'Kehadiran': item.attendance_option,
+            'Acara': item.event_name,
+            'Tanggal Konfirmasi': new Date(item.confirmed_at).toLocaleString('id-ID')
+          };
+        });
 
         const worksheet = XLSX.utils.json_to_sheet(excelData);
 
@@ -824,6 +873,8 @@ export default function AdminPage() {
       setAlert({ type: 'success', message: 'Berhasil mengunduh file rekap kehadiran per kelas!' });
     } catch (err) {
       setAlert({ type: 'danger', message: 'Gagal mengekspor file: ' + err.message });
+    } finally {
+      setIsLoading(false);
     }
   };
 
